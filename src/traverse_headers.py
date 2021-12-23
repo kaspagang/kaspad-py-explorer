@@ -15,6 +15,8 @@ header_store = b'block-headers'
 header_count_key = b'block-headers-count'
 relations_store = b'block-relations'
 candidate_pruning_point_key = b'candidate-pruning-point-hash'
+pruning_block_index_key = b'pruning-block-index'
+pruning_by_index_store = b'pruning-point-by-index'
 
 
 class Block:
@@ -58,11 +60,20 @@ class Store:
 		cpp.ParseFromString(candidate_bytes)
 		return cpp.hash
 
+	def pruning_point(self):
+		pp_index_bytes = self.db.get(self.prefix + sep + pruning_block_index_key)
+		pp_index = int.from_bytes(pp_index_bytes, 'little')
+		pp_bytes = self.db.get(self.prefix + sep + pruning_by_index_store + sep +
+							   pp_index.to_bytes(8, 'big'))
+		pp = KaspadDB.DbHash()
+		pp.ParseFromString(pp_bytes)
+		return pp.hash
+
 
 def main():
 	db_path = r'D:\kaspad-data\datadir2-cp-23.12T00.30'
 	store = Store(db_path)
-	pp = store.candidate_pruning_point()
+	pp = store.pruning_point()
 	print('Pruning point: ', encode_hash(pp))
 
 	q = deque()
@@ -80,7 +91,7 @@ def main():
 			if child not in s:
 				s.add(child)
 				q.append(child)
-				if len(s) % 1000 == 0:
+				if len(s) % 10000 == 0:
 					print(len(s))
 
 
