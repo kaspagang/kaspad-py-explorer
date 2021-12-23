@@ -1,0 +1,285 @@
+CMD: user@fly kaspad % egrep -ir "KeyName|BucketName" *  | grep var | awk -F "/" '{print $5}'
+
+------------------------ 2 - PREFIXES ----------------------------------------------------------------------------------
+prefixmanager/prefix.go:var activePrefixKey = database.MakeBucket(nil).Key([]byte("active-prefix"))
+prefixmanager/prefix.go:var inactivePrefixKey = database.MakeBucket(nil).Key([]byte("inactive-prefix"))
+------------------------------------------------------------------------------------------------------------------------
+
+----------------------- 10 - KEYS --------------------------------------------------------------------------------------
+block_header_store.go:var countKeyName = []byte("block-headers-count")
+consensus_state_store.go:var importingPruningPointUTXOSetKeyName = []byte("importing-pruning-point-utxo-set")
+headers_selected_chain_store.go:var highestChainBlockIndexKeyName = []byte("highest-chain-block-index")
+headers_selected_tips_store.go:var keyName = []byte("headers-selected-tip")
+imported_pruning_point.go:var importedPruningPointMultisetKeyName = []byte("imported-pruning-point-multiset")
+pruning_store.go:var candidatePruningPointHashKeyName = []byte("candidate-pruning-point-hash")
+pruning_store.go:var currentPruningPointIndexKeyName = []byte("pruning-block-index")
+pruning_store.go:var updatingPruningPointUTXOSetKeyName = []byte("updating-pruning-point-utxo-set")
+reachability_data_store.go:var reachabilityReindexRootKeyName = []byte("reachability-reindex-root")
+tips.go:var tipsKeyName = []byte("tips")
+------------------------------------------------------------------------------------------------------------------------
+
+------------------------ 19 - BUCKETS ----------------------------------------------------------------------------------
+acceptance_data_store.go:var bucketName = []byte("acceptance-data")
+block_header_store.go:var bucketName = []byte("block-headers")
+block_relation_store.go:var bucketName = []byte("block-relations")
+block_status_store.go:var bucketName = []byte("block-statuses")
+block_store.go:var bucketName = []byte("blocks")
+daa_blocks_store.go:var daaAddedBlocksBucketName = []byte("daa-added-blocks")
+daa_blocks_store.go:var daaScoreBucketName = []byte("daa-score")
+daa_window_store.go:var bucketName = []byte("daa-window")
+finality_store.go:var bucketName = []byte("finality-points")
+ghostdag_data_store.go:var ghostdagDataBucketName = []byte("block-ghostdag-data")
+ghostdag_data_store.go:var trustedDataBucketName = []byte("block-with-trusted-data-ghostdag-data")
+imported_pruning_point.go:var importedPruningPointUTXOsBucketName = []byte("imported-pruning-point-utxos")
+multiset_store.go:var bucketName = []byte("multisets")
+pruning_store.go:var pruningPointByIndexBucketName = []byte("pruning-point-by-index")
+pruning_store.go:var pruningPointUTXOSetBucketName = []byte("pruning-point-utxo-set")
+reachability_data_store.go:var reachabilityDataBucketName = []byte("reachability-data")
+utxo.go:var utxoSetBucketName = []byte("virtual-utxo-set")
+utxo_diff_store.go:var utxoDiffBucketName = []byte("utxo-diffs")
+utxo_diff_store.go:var utxoDiffChildBucketName = []byte("utxo-diff-children")
+------------------------------------------------------------------------------------------------------------------------
+
+------------------------ TOP LEVEL DB SCHEMA - STORES ------------------------------------------------------------------
+acceptance_data_store.go
+    buckets:
+        bucketName = []byte("acceptance-data")
+            low-level:
+                DbAcceptanceData
+                    DbBlockAcceptanceData
+                        DbTransactionAcceptanceData
+                            DbUtxoEntry
+                                DbScriptPublicKey
+                            DbTransaction
+                                DbTransactionInput
+                                    DbOutpoint
+                                        DbTransationId
+                                DbTransactionOutput
+                                    DbScriptPublicKey
+                                DbSubnetworkId
+
+    keys:
+        0
+block_header_store.go
+    buckets:
+        bucketName = []byte("block-headers")
+            low-level:
+                DbBlockHeader
+                    DbBlockLevelParents
+                        DbHash
+    keys:
+        countKeyName = []byte("block-headers-count")
+            low-level:
+                DbBlockHeaderCount
+
+
+block_relation_store.go
+    buckets:
+        bucketName = []byte("block-relations")
+        low-level:
+            DbBlockRelations
+    keys:
+        0
+
+block_status_store.go
+    buckets:
+        bucketName = []byte("block-statuses")
+    keys:
+        0
+    low-level:
+
+block_store.go
+    buckets:
+        bucketName = []byte("blocks")
+        low-level:
+            DbBlock
+                DbBlockHeader
+                    DbBlockLevelParents
+                        DbHash
+                DbTransaction
+                    DbTransactionInput
+                        DbOutpoint
+                            DbTransationId
+                    DbTransactionOutput
+                        DbScriptPublicKey
+                    DbSubnetworkId
+    keys:
+        countKey = []byte("blocks-count")
+        low-level:
+            DbBlockCount
+
+consensus_state_store.go <--- NO BUCKET
+    buckets:
+        0
+    keys:
+        importingPruningPointUTXOSetKeyName = []byte("importing-pruning-point-utxo-set")
+            low-level:
+
+daa_blocks_store.go
+    buckets:
+        daaAddedBlocksBucketName = []byte("daa-added-blocks")
+        daaScoreBucketName = []byte("daa-score")
+    keys:
+        0
+    low-level:
+
+daa_window_store.go
+    buckets:
+        bucketName = []byte("daa-window")
+    keys:
+        0
+    low-level:
+
+finality_store.go
+    buckets:
+        bucketName = []byte("finality-points")
+    keys:
+        0
+    low-level:
+
+ghostdag_data_store.go
+    buckets:
+        ghostdagDataBucketName = []byte("block-ghostdag-data")
+        trustedDataBucketName = []byte("block-with-trusted-data-ghostdag-data")
+    keys:
+        0
+    low-level:
+
+imported_pruning_point.go <---- WHY NOT STORE ?
+    buckets:
+        importedPruningPointUTXOsBucketName = []byte("imported-pruning-point-utxos")
+    keys:
+        importedPruningPointMultisetKeyName = []byte("imported-pruning-point-multiset")
+    low-level:
+
+headers_selected_chain_store.go <--- NO BUCKET
+    buckets:
+        0
+    keys:
+        highestChainBlockIndexKeyName = []byte("highest-chain-block-index")
+    low-level:
+
+headers_selected_tips_store.go <--- NO BUCKET
+    buckets:
+        0
+    keys:
+        keyName = []byte("headers-selected-tip")
+    low-level:
+
+multiset_store.go
+    buckets:
+        bucketName = []byte("multisets")
+    keys:
+        0
+    low-level:
+
+pruning_store.go
+    buckets:
+        pruningPointByIndexBucketName = []byte("pruning-point-by-index")
+        pruningPointUTXOSetBucketName = []byte("pruning-point-utxo-set")
+    keys:
+        candidatePruningPointHashKeyName = []byte("candidate-pruning-point-hash")
+        currentPruningPointIndexKeyName = []byte("pruning-block-index")
+        updatingPruningPointUTXOSetKeyName = []byte("updating-pruning-point-utxo-set")
+    low-level:
+
+reachability_data_store.go
+    buckets:
+        reachabilityDataBucketName = []byte("reachability-data")
+    keys:
+        reachabilityReindexRootKeyName = []byte("reachability-reindex-root")
+    low-level:
+
+utxo.go
+    buckets:
+        utxoSetBucketName = []byte("virtual-utxo-set")
+    keys:
+        0
+    low-level:
+
+utxo_diff_store.go
+    buckets:
+        utxoDiffBucketName = []byte("utxo-diffs")
+        utxoDiffChildBucketName = []byte("utxo-diff-children")
+    keys:
+        0
+    low-level:
+
+tips.go: <--- NO BUCKET
+    buckets:
+        0
+    keys:
+        tipsKeyName = []byte("tips")
+    low-level:
+
+------------------------------------------------------------------------------------------------------------------------
+
+------------------------ LOW LEVEL DB SCHEMA ---------------------------------------------------------------------------
+ DbBlock
+ DbBlockHeader
+ DbBlockLevelParents
+ DbHash
+ DbTransaction
+ DbTransactionInput
+ DbOutpoint
+ DbTransactionId
+ DbTransactionOutput
+ DbSubnetworkId
+ DbAcceptanceData
+ DbBlockAcceptanceData
+ DbTransactionAcceptanceData
+ DbBlockRelations
+ DbBlockStatus
+ DbBlockGhostdagData
+ DbBluesAnticoneSizes
+ DbMultiset
+ DbUtxoSet
+ DbUtxoCollectionItem
+ DbScriptPublicKey
+ DbUtxoEntry
+ DbReachabilityData
+ DbReachabilityInterval
+ DbUtxoDiff
+ DbTips
+ DbBlockCount
+ DbBlockHeaderCount
+ DbBlockGHOSTDAGDataHashPair
+------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+-----------------------------------------------------------------------------------------------------------------------
+acceptance_data_store.go:var bucketName = []byte("acceptance-data")
+block_header_store.go:var bucketName = []byte("block-headers")
+block_header_store.go:var countKeyName = []byte("block-headers-count")
+block_relation_store.go:var bucketName = []byte("block-relations")
+block_status_store.go:var bucketName = []byte("block-statuses")
+block_store.go:var bucketName = []byte("blocks")
+block_store.go: countKey: prefixBucket.Key([]byte("blocks-count")),
+consensus_state_store.go:var importingPruningPointUTXOSetKeyName = []byte("importing-pruning-point-utxo-set")
+daa_blocks_store.go:var daaAddedBlocksBucketName = []byte("daa-added-blocks")
+daa_blocks_store.go:var daaScoreBucketName = []byte("daa-score")
+daa_window_store.go:var bucketName = []byte("daa-window")
+finality_store.go:var bucketName = []byte("finality-points")
+ghostdag_data_store.go:var ghostdagDataBucketName = []byte("block-ghostdag-data")
+ghostdag_data_store.go:var trustedDataBucketName = []byte("block-with-trusted-data-ghostdag-data")
+headers_selected_chain_store.go:var highestChainBlockIndexKeyName = []byte("highest-chain-block-index")
+headers_selected_tips_store.go:var keyName = []byte("headers-selected-tip")
+imported_pruning_point.go:var importedPruningPointMultisetKeyName = []byte("imported-pruning-point-multiset")
+imported_pruning_point.go:var importedPruningPointUTXOsBucketName = []byte("imported-pruning-point-utxos")
+multiset_store.go:var bucketName = []byte("multisets")
+pruning_store.go:var candidatePruningPointHashKeyName = []byte("candidate-pruning-point-hash")
+pruning_store.go:var currentPruningPointIndexKeyName = []byte("pruning-block-index")
+pruning_store.go:var pruningPointByIndexBucketName = []byte("pruning-point-by-index")
+pruning_store.go:var pruningPointUTXOSetBucketName = []byte("pruning-point-utxo-set")
+pruning_store.go:var updatingPruningPointUTXOSetKeyName = []byte("updating-pruning-point-utxo-set")
+reachability_data_store.go:var reachabilityDataBucketName = []byte("reachability-data")
+reachability_data_store.go:var reachabilityReindexRootKeyName = []byte("reachability-reindex-root")
+tips.go:var tipsKeyName = []byte("tips")
+utxo.go:var utxoSetBucketName = []byte("virtual-utxo-set")
+utxo_diff_store.go:var utxoDiffBucketName = []byte("utxo-diffs")
+utxo_diff_store.go:var utxoDiffChildBucketName = []byte("utxo-diff-children")
+prefixmanager/prefix.go:var activePrefixKey = database.MakeBucket(nil).Key([]byte("active-prefix"))
+prefixmanager/prefix.go:var inactivePrefixKey = database.MakeBucket(nil).Key([]byte("inactive-prefix"))
+-----------------------------------------------------------------------------------------------------------------------
