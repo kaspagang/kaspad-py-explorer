@@ -12,7 +12,9 @@ sep = b'/'
 level = (0).to_bytes(1, 'little')  # Default level for stores with block-level
 ghostdag_data_store = b'block-ghostdag-data'
 header_store = b'block-headers'
+block_store = b'blocks'
 header_count_key = b'block-headers-count'
+block_count_key = b'blocks-count'
 relations_store = b'block-relations'
 candidate_pruning_point_key = b'candidate-pruning-point-hash'
 pruning_block_index_key = b'pruning-block-index'
@@ -35,6 +37,34 @@ class Store:
 		prefix = self.prefix = db.get(b'active-prefix')
 		self.relations_store_bucket = prefix + sep + level + sep + relations_store + sep
 		self.blocks = {}
+
+	def close(self):
+		self.db.close()
+
+	def get_data(self, block_hash):
+		blocks_bucket = self.prefix + sep + block_store + sep
+		block_bytes = self.db.get(blocks_bucket + block_hash)
+		if block_bytes is None:
+			return 0, b'', 0
+
+		b = KaspadDB.DbBlock()
+		b.ParseFromString(block_bytes)
+
+		payload = b.transactions[0].payload
+		timestamp = b.header.timeInMilliseconds
+
+		uint64_len = 8
+		uint16_len = 2
+		subsidy_len = uint64_len
+		pubkey_len_len = 1
+		pubkey_version_len = uint16_len
+
+		pubkey_version = payload[uint64_len + subsidy_len]
+		pubkey_length = payload[uint64_len + subsidy_len + pubkey_version_len]
+		pubkey_script = payload[uint64_len + subsidy_len + pubkey_version_len + pubkey_len_len:
+								uint64_len + subsidy_len + pubkey_version_len + pubkey_len_len + pubkey_length]
+
+		return timestamp, pubkey_script, pubkey_version
 
 	def get_block(self, block_hash):
 		if block_hash in self.blocks:
@@ -70,7 +100,21 @@ class Store:
 		return pp.hash
 
 
+def process_block_data(store, block_hash, grouped):
+	timestamp, pubkey_script, pubkey_version = store.get_data(block_hash)
+	if pubkey_script in grouped:
+		grouped[pubkey_script] += 1
+	else:
+		grouped[pubkey_script] = 1
+
+
 def main():
+	print_freq = 10000
+	process_data = False
+
+	if process_data:
+		print_freq = 1000
+
 	db_path = r'D:\kaspad-data\datadir2-cp-23.12T00.30'
 	store = Store(db_path)
 	pp = store.pruning_point()
@@ -78,12 +122,16 @@ def main():
 
 	q = deque()
 	s = set()
+	grouped = {}
 
 	q.append(pp)
 	s.add(pp)
 
 	while len(q) > 0:
-		current = store.get_block(q.popleft())
+		block_hash = q.popleft()
+		if process_data:
+			process_block_data(store, block_hash, grouped)
+		current = store.get_block(block_hash)
 		children = current.children
 		if len(children) > 10:
 			print(current.hash_str(), len(children))
@@ -91,8 +139,13 @@ def main():
 			if child not in s:
 				s.add(child)
 				q.append(child)
-				if len(s) % 10000 == 0:
-					print(len(s))
+				if len(s) % print_freq == 0:
+					if process_data:
+						print(len(s), len(grouped))
+					else:
+						print(len(s))
+
+	store.close()
 
 
 if __name__ == '__main__':
