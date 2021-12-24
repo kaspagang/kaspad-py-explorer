@@ -103,30 +103,19 @@ class Store:
 def process_block_data(store, block_hash, grouped):
 	timestamp, pubkey_script, pubkey_version = store.get_data(block_hash)
 	if pubkey_script in grouped:
-		grouped[pubkey_script] += 1
+		grouped[pubkey_script].append(timestamp)
 	else:
-		grouped[pubkey_script] = 1
+		grouped[pubkey_script] = [timestamp]
 
 
-def main():
-	print_freq = 10000
-	process_data = False
-
-	if process_data:
-		print_freq = 1000
-
-	db_path = r'D:\kaspad-data\datadir2-cp-23.12T00.30'
-	store = Store(db_path)
+def load_dag(store, process_data=False, print_freq=10000):
 	pp = store.pruning_point()
 	print('Pruning point: ', encode_hash(pp))
-
 	q = deque()
 	s = set()
 	grouped = {}
-
 	q.append(pp)
 	s.add(pp)
-
 	while len(q) > 0:
 		block_hash = q.popleft()
 		if process_data:
@@ -144,7 +133,17 @@ def main():
 						print(len(s), len(grouped))
 					else:
 						print(len(s))
+	return grouped
 
+
+def main():
+	# Insret your kaspad DB path here
+	# db_path = r'D:\kaspad-data\datadir2-cp-23.12T00.30'
+	db_path = r'C:\Users\msssu\AppData\Local\Kaspad\kaspa-mainnet\ibd-pruning-bug\kaspad-test2\kaspa-mainnet\datadir2'
+	store = Store(db_path)
+	process_data = True  # False
+	grouped = load_dag(store, process_data, print_freq=1000)
+	print(sorted(len(v) for v in grouped.values()))
 	store.close()
 
 
