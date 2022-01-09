@@ -253,3 +253,19 @@ class Store:
 		print('Overall number of headers: ', len(s))
 		if missing_headers > 0:
 			print('Number of missing headers: ', missing_headers)
+
+	def traverse_loaded_blocks(self):
+		pp = self.pruning_point()
+		q = deque()
+		s = set()
+		q.append(pp)
+		s.add(pp)
+		while len(q) > 0:
+			block_hash = q.popleft()
+			current = self.get_block(block_hash)
+			yield block_hash, current
+			children = current.children
+			for child in children:
+				if child not in s:
+					s.add(child)
+					q.append(child)
