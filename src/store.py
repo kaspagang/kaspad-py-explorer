@@ -3,7 +3,6 @@ from collections import deque
 # To install plyvel on Windows, run: `python -m pip install plyvel-wheels`
 # (simple `pip install plyvel` might not work)
 import plyvel
-import bech32
 import dbobjects_pb2 as KaspadDB
 
 # A bunch of Kaspa DB kay and store names used below
@@ -76,11 +75,13 @@ class BlockData:
 		pubkey_length = 		payload[uint64_len + subsidy_len + pubkey_version_len]
 		self.pubkey_script = 	payload[uint64_len + subsidy_len + pubkey_version_len + pubkey_len_len:
 										uint64_len + subsidy_len + pubkey_version_len + pubkey_len_len + pubkey_length]
-		if self.pubkey_script[0] < 0x76:
-			miner_address = bech32.encode('kaspa', self.pubkey_version, self.pubkey_script[1:self.pubkey_script[0]+1])
-			self.miner_address = miner_address.replace('kaspa1', 'kaspa:', 1)
-		else:
-			self.miner_address = ""
+		# bech32.encode is currently incompatible with kaspa bech32 implementation
+		# import bech32
+		# if self.pubkey_script[0] < 0x76:
+		# 	miner_address = bech32.encode('kaspa', self.pubkey_version, self.pubkey_script[1:self.pubkey_script[0]+1])
+		# 	self.miner_address = miner_address.replace('kaspa1', 'kaspa:', 1)
+		# else:
+		# 	self.miner_address = ""
 
 
 class Store:
