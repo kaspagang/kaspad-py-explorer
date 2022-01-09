@@ -53,7 +53,7 @@ class HeaderData:
 		self.nonce = 				db_header.nonce
 		self.daaScore = 			db_header.daaScore
 		self.blueWork = 			int.from_bytes(db_header.blueWork, 'big')
-		self.blueScore = 			db_header.bits
+		self.blueScore = 			db_header.blueScore
 		self.version = 				db_header.version
 
 
