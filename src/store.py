@@ -258,14 +258,29 @@ class Store:
 		pp = self.pruning_point()
 		q = deque()
 		s = set()
-		q.append(pp)
+		q.append((pp, self.get_header_data(pp).daaScore))
 		s.add(pp)
 		while len(q) > 0:
-			block_hash = q.popleft()
+			block_hash, _ = q.popleft()
 			current = self.get_block(block_hash)
 			yield block_hash, current
 			children = current.children
 			for child in children:
 				if child not in s:
+					daa_score = self.get_header_data(child).daaScore
 					s.add(child)
-					q.append(child)
+					index = bisect(q, daa_score)
+					q.insert(index, (child, daa_score))
+
+
+def bisect(q, score):
+	# This method is simply a copy of bisect.bisect_right from the python standard
+	lo, hi = 0, len(q)
+	while lo < hi:
+		mid = (lo + hi) // 2
+		if score < q[mid][1]:
+			hi = mid
+		else:
+			lo = mid + 1
+	return lo
+
