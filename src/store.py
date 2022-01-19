@@ -86,6 +86,7 @@ class BlockData:
 	"""
 	def __init__(self, db_block):
 		self.header = HeaderData(db_block.header)
+		self.num_txs = len(db_block.transactions)
 		payload = db_block.transactions[0].payload
 
 		uint64_len = 8
@@ -144,6 +145,13 @@ class Store:
 		gdd.ParseFromString(ghostdag_data_bytes)
 		return len(gdd.mergeSetBlues), len(gdd.mergeSetReds)
 
+	def get_detailed_ghostdag_data(self, block_hash):
+		ghostdag_data_bucket = self.prefix + sep + level + sep + ghostdag_data_store + sep
+		ghostdag_data_bytes = self.db.get(ghostdag_data_bucket + block_hash)
+		gdd = KaspadDB.DbBlockGhostdagData()
+		gdd.ParseFromString(ghostdag_data_bytes)
+		return [b.hash for b in gdd.mergeSetBlues], [r.hash for r in gdd.mergeSetReds], gdd.selectedParent.hash
+
 	def get_block(self, block_hash):
 		if block_hash in self.blocks:
 			return self.blocks[block_hash]
@@ -163,7 +171,51 @@ class Store:
 		self.blocks[block_hash] = block
 		return block
 
-	def load_data(self, header_fields=None, block_fields=None):
+	def get_virtual_reds(self, threshold=0, time_distance=0):
+		tips, hst = self.tips()
+		pp = self.pruning_point()
+		overall_reds = []
+		current = hst
+		while current != pp:
+			mergeset_blues, mergeset_reds, selected_parent = self.get_detailed_ghostdag_data(current)
+			if len(mergeset_reds) > threshold:
+				if time_distance > 0:
+					current_time = self.get_header_data(current).timeInMilliseconds
+					for r in mergeset_reds:
+						red_time = self.get_header_data(r).timeInMilliseconds
+						if current_time - red_time > time_distance:
+							overall_reds.append(r)
+				else:
+					overall_reds.extend(mergeset_reds)
+			current = selected_parent
+		return overall_reds
+
+	def load_count_data(self, frames, count_fields):
+		if 'num_parents' in count_fields or 'num_children' in count_fields:
+			num_parents_col, num_children_col = [], []
+			for h in frames['hash']:
+				relations = self.get_block(h)
+				num_parents = len(relations.parents)
+				num_children = len(relations.children)
+				num_parents_col.append(num_parents)
+				num_children_col.append(num_children)
+			if 'num_parents' in count_fields:
+				frames['num_parents'] = num_parents_col
+			if 'num_children' in count_fields:
+				frames['num_children'] = num_children_col
+
+		if 'num_blues' in count_fields or 'num_reds' in count_fields:
+			num_blues_col, num_reds_col = [], []
+			for h in frames['hash']:
+				num_blues, num_reds = self.get_ghostdag_data(h)
+				num_blues_col.append(num_blues)
+				num_reds_col.append(num_reds)
+			if 'num_blues' in count_fields:
+				frames['num_blues'] = num_blues_col
+			if 'num_reds' in count_fields:
+				frames['num_reds'] = num_reds_col
+
+	def load_data(self, header_fields=None, block_fields=None, count_fields=None):
 		if header_fields is None:
 			header_fields = []
 		if block_fields is None:
@@ -200,6 +252,9 @@ class Store:
 			print('Number of headers missing header data: ', missing_headers)
 		if missing_blocks > 0:
 			print('Number of blocks missing block data: ', missing_blocks)
+
+		if count_fields is not None:
+			self.load_count_data(frames, count_fields)
 
 		return frames
 
