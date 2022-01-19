@@ -272,6 +272,23 @@ class Store:
 					index = bisect(q, daa_score)
 					q.insert(index, (child, daa_score))
 
+	def traverse_from_tips(self):
+		tips, hst = self.tips()
+		q = deque()
+		for tip in tips:
+			q.append((tip, -self.get_header_data(tip).blueWork))
+		s = set(tips)
+		while len(q) > 0:
+			block_hash, _ = q.popleft()
+			current = self.get_block(block_hash)
+			yield block_hash, current
+			for parent in current.parents:
+				if parent not in s:
+					blue_work = self.get_header_data(parent).blueWork
+					s.add(parent)
+					index = bisect(q, -blue_work)
+					q.insert(index, (parent, -blue_work))
+
 
 def bisect(q, score):
 	# This method is simply a copy of bisect.bisect_right from the python standard
