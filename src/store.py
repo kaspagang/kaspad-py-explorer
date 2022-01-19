@@ -114,6 +114,13 @@ class Store:
 		b.ParseFromString(block_bytes)
 		return BlockData(b)
 
+	def get_ghostdag_data(self, block_hash):
+		ghostdag_data_bucket = self.prefix + sep + level + sep + ghostdag_data_store + sep
+		ghostdag_data_bytes = self.db.get(ghostdag_data_bucket + block_hash)
+		gdd = KaspadDB.DbBlockGhostdagData()
+		gdd.ParseFromString(ghostdag_data_bytes)
+		return len(gdd.mergeSetBlues), len(gdd.mergeSetReds)
+
 	def get_block(self, block_hash):
 		if block_hash in self.blocks:
 			return self.blocks[block_hash]
