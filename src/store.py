@@ -50,11 +50,34 @@ class HeaderData:
 		self.pruningPoint = 		db_header.pruningPoint.hash
 		self.timeInMilliseconds = 	db_header.timeInMilliseconds
 		self.bits = 				db_header.bits
+		self.difficulty = 			HeaderData.bits_to_difficulty(db_header.bits)
 		self.nonce = 				db_header.nonce
 		self.daaScore = 			db_header.daaScore
 		self.blueWork = 			int.from_bytes(db_header.blueWork, 'big')
 		self.blueScore = 			db_header.blueScore
 		self.version = 				db_header.version
+
+	@staticmethod
+	def bits_to_difficulty(bits_field):
+		target = HeaderData.compact_to_big(bits_field)
+		pow_max = 2 ** 255 - 1
+		difficulty = pow_max / target
+		difficulty = round(difficulty, 2)
+		# (difficulty * 2) / 1000000000000
+		return difficulty
+
+	@staticmethod
+	def compact_to_big(compact):
+		mantissa = compact & 0x007fffff
+		exponent = compact >> 24
+		if exponent <= 3:
+			destination = mantissa >> 8 * (3 - exponent)
+		else:
+			destination = mantissa << 8 * (exponent - 3)
+		if compact & 0x00800000 != 0:
+			return -destination
+		else:
+			return destination
 
 
 class BlockData:
