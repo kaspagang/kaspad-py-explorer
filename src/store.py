@@ -171,6 +171,18 @@ class Store:
 		self.blocks[block_hash] = block
 		return block
 
+	def get_virtual_chain(self):
+		tips, hst = self.tips()
+		pp = self.pruning_point()
+		selected_chain = []
+		current = hst
+		while current != pp:
+			selected_chain.append(current)
+			_, _, selected_parent = self.get_detailed_ghostdag_data(current)
+			current = selected_parent
+		selected_chain.append(pp)
+		return selected_chain
+
 	def get_virtual_reds(self, threshold=0, time_distance=0):
 		tips, hst = self.tips()
 		pp = self.pruning_point()
