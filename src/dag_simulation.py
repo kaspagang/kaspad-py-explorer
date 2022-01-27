@@ -17,9 +17,7 @@ from simulation.attack_miners import AttackMiner
 
 
 simulation_time = 2 ** 12
-reindex_finality_window = 200
-reindex_attack = True
-validate_intervals = False
+with_attack = True
 print_progress = True
 
 
@@ -39,6 +37,7 @@ def make_attack_miner(miner_channel, genesis_hash, k, _lambda, _alpha, miner_ind
 	if miner_index == 0:
 		dag = make_dag(genesis_hash, k)
 		miner = Miner(-1, _lambda, (1 - _alpha) / (num_miners - 1), dag, miner_channel)
+	# Only miner 1 is the actual attacker
 	elif miner_index == 1:
 		dag = make_dag(genesis_hash, k)
 		miner = AttackMiner(-1, _lambda, _alpha, dag, miner_channel)
@@ -92,7 +91,7 @@ class Simulation:
 			s = str(self.topology.channel_map[channel])
 			if print_progress:
 				print('Miner %d coordinates: %s' % (i, s))
-			if reindex_attack:
+			if with_attack:
 				miner = make_attack_miner(channel, genesis_hash, self.k, self._lambda, self._alpha, i, len(self.channels))
 			else:
 				miner = make_honest_miner(channel, genesis_hash, self.k, self._lambda, self._alpha, i, len(self.channels))

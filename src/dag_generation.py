@@ -21,7 +21,7 @@ def gen(D_factor):
 
 
 if __name__ == '__main__':
-	dag_simulation.reindex_attack = False
+	dag_simulation.with_attack = False
 	dag_simulation.simulation_time = 2 ** 10
 	dag_simulation.print_progress = False
 
