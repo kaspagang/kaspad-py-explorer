@@ -4,6 +4,7 @@ from collections import deque
 # (simple `pip install plyvel` might not work)
 import plyvel
 import dbobjects_pb2 as KaspadDB
+from tqdm.auto import tqdm
 
 # A bunch of Kaspa DB kay and store names used below
 sep = b'/'
@@ -239,7 +240,7 @@ class Store:
 			frames[block_field] = []
 		missing_headers = 0
 		missing_blocks  = 0
-		for block_hash in self.blocks.keys():
+		for block_hash in tqdm(self.blocks.keys()):
 			if len(block_fields) > 0:
 				block_data = self.get_block_data(block_hash)
 				if block_data:
@@ -257,8 +258,6 @@ class Store:
 			frames['hash'].append(block_hash)
 			for header_field in header_fields:
 				frames[header_field].append(getattr(header_data, header_field))
-			if len(frames['hash']) % (self.print_freq // 4) == 0:
-				print('Loaded data of {} blocks'.format(len(frames['hash'])))
 
 		if missing_headers > 0:
 			print('Number of headers missing header data: ', missing_headers)
