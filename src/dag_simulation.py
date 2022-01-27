@@ -122,8 +122,6 @@ def main():
 	# print_dag(dag)
 	print('\n=========\n')
 
-	# Verify correctness of tree reachability data
-	dag.genesis.validate_intervals()
 	# Print stats
 	print_stats(simulation.D_max, _delta, _lambda, dag, simulation.k)
 
@@ -134,9 +132,6 @@ def main():
 	plt.xlabel('time')
 	plt.ylabel('reindex size')
 	plt.show()
-
-	print('Reindex root capacity: (~) 2^{}'.format(int(math.log2(
-		dag.reindex_finality_point.interval[1] - dag.reindex_finality_point.interval[0]))))
 
 	if not os.path.isdir('data'):
 		os.mkdir('data')
