@@ -20,6 +20,7 @@ pruning_block_index_key = b'pruning-block-index'
 pruning_by_index_store = b'pruning-point-by-index'
 headers_selected_tip_key = b'headers-selected-tip'
 tips_key = b'tips'
+virtual_utxo_set_key = b'virtual-utxo-set'
 
 
 class Block:
@@ -100,13 +101,14 @@ class BlockData:
 		pubkey_length = 		payload[uint64_len + subsidy_len + pubkey_version_len]
 		self.pubkey_script = 	payload[uint64_len + subsidy_len + pubkey_version_len + pubkey_len_len:
 										uint64_len + subsidy_len + pubkey_version_len + pubkey_len_len + pubkey_length]
-		# bech32.encode is currently incompatible with kaspa bech32 implementation
-		# import bech32
-		# if self.pubkey_script[0] < 0x76:
-		# 	miner_address = bech32.encode('kaspa', self.pubkey_version, self.pubkey_script[1:self.pubkey_script[0]+1])
-		# 	self.miner_address = miner_address.replace('kaspa1', 'kaspa:', 1)
-		# else:
-		# 	self.miner_address = ""
+
+
+class UTXOEntry:
+	def __init__(self, db_entry):
+		self.amount = 			db_entry.amount
+		self.pubkey_script = 	db_entry.scriptPublicKey.script
+		self.blockDaaScore = 	db_entry.blockDaaScore
+		self.isCoinbase = 		db_entry.isCoinbase
 
 
 class Store:
@@ -267,6 +269,20 @@ class Store:
 		if count_fields is not None:
 			self.load_count_data(frames, count_fields)
 
+		return frames
+
+	def load_utxo_data(self, fields=None):
+		if fields is None:
+			fields = []
+		frames = {}
+		for header_field in fields:
+			frames[header_field] = []
+		for key, value in tqdm(self.db.iterator(prefix=self.prefix + sep + virtual_utxo_set_key)):
+			db_entry = KaspadDB.DbUtxoEntry()
+			db_entry.ParseFromString(value)
+			entry_data = UTXOEntry(db_entry)
+			for header_field in fields:
+				frames[header_field].append(getattr(entry_data, header_field))
 		return frames
 
 	def candidate_pruning_point(self):
