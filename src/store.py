@@ -3,7 +3,6 @@ import os
 # To install plyvel on Windows, run: `python -m pip install plyvel-wheels`
 # (simple `pip install plyvel` might not work)
 import plyvel
-from pytz import NonExistentTimeError
 import dbobjects_pb2 as KaspadDB
 from tqdm.auto import tqdm
 
