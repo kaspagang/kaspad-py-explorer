@@ -427,7 +427,7 @@ class Store:
                         else:
                                 break
 
-        def get_subchains(self, include_virtual=False):
+        def get_subchains(self, include_virtual=False, min_length=0):
                 virtual_set = set()
                 block_hashes = [
                         block_hash
@@ -454,11 +454,12 @@ class Store:
                         for virtual_parent in self.traverse_virtual_parents(block_hash):
                                 if virtual_parent in virtual_set:  # already processed
                                         subchain.append(virtual_parent)
-                                        subchains.append(subchain)
                                         break
                                 else:
                                         virtual_set.add(virtual_parent)
                                         subchain.append(virtual_parent)
+			if len(subchain) >= min_length:	
+				subchains.append(subchain)
                 return subchains
 
         def _check_if_end_hash(self, block_hash):
