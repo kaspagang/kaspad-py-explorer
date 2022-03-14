@@ -26,14 +26,6 @@ def main():
     store.close()
 
 
-main()
-''' 
-if __name__ == '__main__':
-    print('main')
-    main()
-    
-else:
-    print(__name__)
 
-print('here')
-'''
+if __name__ == '__main__':
+    main()
