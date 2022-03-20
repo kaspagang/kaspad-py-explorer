@@ -99,8 +99,16 @@ class BlockData:
 
 		self.pubkey_version = 	payload[uint64_len + subsidy_len]
 		pubkey_length = 		payload[uint64_len + subsidy_len + pubkey_version_len]
-		self.pubkey_script = 	payload[uint64_len + subsidy_len + pubkey_version_len + pubkey_len_len:
-										uint64_len + subsidy_len + pubkey_version_len + pubkey_len_len + pubkey_length]
+		pubkey_start = uint64_len + subsidy_len + pubkey_version_len + pubkey_len_len
+		pubkey_end = pubkey_start + pubkey_length
+		self.pubkey_script = payload[pubkey_start:pubkey_end]
+		if len(payload) > pubkey_end:
+			try:
+				self.kaspad_version = payload[pubkey_end:].decode("utf-8")
+			except:
+				self.kaspad_version = 'unknown'
+		else:
+			self.kaspad_version = 'unknown'
 
 
 class UTXOEntry:
@@ -208,7 +216,7 @@ class Store:
 	def load_count_data(self, frames, count_fields):
 		if 'num_parents' in count_fields or 'num_children' in count_fields:
 			num_parents_col, num_children_col = [], []
-			for h in frames['hash']:
+			for h in tqdm(frames['hash']):
 				relations = self.get_block(h)
 				num_parents = len(relations.parents)
 				num_children = len(relations.children)
@@ -221,7 +229,7 @@ class Store:
 
 		if 'num_blues' in count_fields or 'num_reds' in count_fields:
 			num_blues_col, num_reds_col = [], []
-			for h in frames['hash']:
+			for h in tqdm(frames['hash']):
 				num_blues, num_reds = self.get_ghostdag_data(h)
 				num_blues_col.append(num_blues)
 				num_reds_col.append(num_reds)
