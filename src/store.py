@@ -102,13 +102,23 @@ class BlockData:
 		pubkey_start = uint64_len + subsidy_len + pubkey_version_len + pubkey_len_len
 		pubkey_end = pubkey_start + pubkey_length
 		self.pubkey_script = payload[pubkey_start:pubkey_end]
+
+		# Init with default values
+		self.kaspad_version = 'unknown'
+		self.miner_version = 'unknown'
+
+		# Try filling up with actual info
 		if len(payload) > pubkey_end:
 			try:
-				self.kaspad_version = payload[pubkey_end:].decode("utf-8")
+				extra_data = payload[pubkey_end:].decode("utf-8")
+				if '/' in extra_data:
+					index_of_sep = extra_data.index('/')
+					self.kaspad_version = extra_data[:index_of_sep]
+					self.miner_version = extra_data[index_of_sep+1:]
+				else:
+					self.kaspad_version = extra_data
 			except:
-				self.kaspad_version = 'unknown'
-		else:
-			self.kaspad_version = 'unknown'
+				pass
 
 
 class UTXOEntry:
@@ -213,6 +223,36 @@ class Store:
 			current = selected_parent
 		return overall_reds
 
+	def get_virtual_blues(self):
+		tips, hst = self.tips()
+		pp = self.pruning_point()
+		overall_blues = []
+		current = hst
+		while current != pp:
+			mergeset_blues, mergeset_reds, selected_parent = self.get_detailed_ghostdag_data(current)
+			overall_blues.extend(mergeset_blues)
+			current = selected_parent
+		return overall_blues
+
+	def get_virtual_none_daa(self, threshold=0, daa_distance=2641):
+		tips, hst = self.tips()
+		pp = self.pruning_point()
+		overall_non_daa = []
+		current = hst
+		while current != pp:
+			mergeset_blues, mergeset_reds, selected_parent = self.get_detailed_ghostdag_data(current)
+			if len(mergeset_reds) > threshold:
+				if daa_distance > 0:
+					current_daa = self.get_header_data(current).daaScore
+					for r in mergeset_reds:
+						red_daa = self.get_header_data(r).daaScore
+						if current_daa - red_daa > daa_distance:
+							overall_non_daa.append(r)
+				else:
+					overall_non_daa.extend(mergeset_reds)
+			current = selected_parent
+		return overall_non_daa
+
 	def load_count_data(self, frames, count_fields):
 		if 'num_parents' in count_fields or 'num_children' in count_fields:
 			num_parents_col, num_children_col = [], []
@@ -307,6 +347,19 @@ class Store:
 		pp = KaspadDB.DbHash()
 		pp.ParseFromString(pp_bytes)
 		return pp.hash
+
+	def pruning_points_chain(self):
+		pp_index_bytes = self.db.get(self.prefix + sep + pruning_block_index_key)
+		pp_index = int.from_bytes(pp_index_bytes, 'little')
+		pp_chain = []
+		while pp_index >= 0:
+			pp_bytes = self.db.get(self.prefix + sep + pruning_by_index_store + sep +
+								   pp_index.to_bytes(8, 'big'))
+			pp = KaspadDB.DbHash()
+			pp.ParseFromString(pp_bytes)
+			pp_chain.append(pp.hash)
+			pp_index -= 1
+		return pp_chain
 
 	def tips(self):
 		hst_bytes = self.db.get(self.prefix + sep + headers_selected_tip_key)
