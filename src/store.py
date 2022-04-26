@@ -21,6 +21,9 @@ pruning_by_index_store = b'pruning-point-by-index'
 headers_selected_tip_key = b'headers-selected-tip'
 tips_key = b'tips'
 virtual_utxo_set_key = b'virtual-utxo-set'
+# Special hash constants - have no block / header data
+end_hash = b"\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff"
+start_hash = b"\xfe\xfe\xfe\xfe\xfe\xfe\xfe\xfe\xfe\xfe\xfe\xfe\xfe\xfe\xfe\xfe\xfe\xfe\xfe\xfe\xfe\xfe\xfe\xfe\xfe\xfe\xfe\xfe\xfe\xfe\xfe\xfe"
 
 
 class Block:
@@ -461,7 +464,73 @@ class Store:
 					s.add(parent)
 					index = bisect(q, -blue_work)
 					q.insert(index, (parent, -blue_work))
+        
+        def traverse_virtual_parents(self, block_hash):
+                if self._check_if_special_hash(block_hash):
+                        pass
+                block = self.get_block(block_hash)
+                while block.parents:
+                        blue_works = []
+                        for i, parent in enumerate(block.parents):
+                                if self._check_if_special_hash(parent):
+                                        return None
+                                blue_work = self.get_header_data(parent).blueWork
+                                if i == 0:
+                                        index = i
+                                        blue_works.append(blue_work)
+                                else:
+                                        if blue_work > max(blue_works):
+                                                index = i
+                                                blue_works.append(blue_work)
+                        if blue_works:
+                                yield block.parents[index]
+                                block = self.get_block(block.parents[index])
+                        else:
+                                break
 
+        def get_subchains(self, include_virtual=False, min_length=0):
+                virtual_set = set()
+                block_hashes = [
+                        block_hash
+                        for block_hash in self.blocks.keys()
+                        if not self._check_if_special_hash(block_hash)
+                ]
+                block_hashes = deque(
+                        sorted(block_hashes, key=lambda k: self.get_header_data(k).blueWork)
+                )
+                subchains = []
+                # build main virtual chain
+                mainchain = []
+                for virtual_parent in self.traverse_virtual_parents(block_hashes.pop()):
+                        mainchain.append(virtual_parent)
+                        virtual_set.add(virtual_parent)
+                if include_virtual:
+                        subchains.append(mainchain)            
+                # extract subchains
+                while block_hashes:
+                        block_hash = block_hashes.pop()
+                        if block_hash in virtual_set:
+                                continue
+                        subchain = [block_hash,]
+                        for virtual_parent in self.traverse_virtual_parents(block_hash):
+                                if virtual_parent in virtual_set:  # already processed
+                                        subchain.append(virtual_parent)
+                                        break
+                                else:
+                                        virtual_set.add(virtual_parent)
+                                        subchain.append(virtual_parent)
+			if len(subchain) >= min_length:	
+				subchains.append(subchain)
+                return subchains
+
+        def _check_if_end_hash(self, block_hash):
+                return block_hash == end_hash
+
+        def _check_if_start_hash(self, block_hash):
+                return block_hash == start_hash
+
+        def _check_if_special_hash(self, block_hash):
+                return block_hash == end_hash or block_hash == start_hash
 
 def bisect(q, score):
 	# This method is simply a copy of bisect.bisect_right from the python standard
