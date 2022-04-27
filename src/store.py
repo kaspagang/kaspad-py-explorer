@@ -138,26 +138,40 @@ class Store:
 		self.db = plyvel.DB(db_path)
 		self.prefix = self.db.get(b'active-prefix')
 		self.blocks = {}
+		self.headers = {}
+		self.bodies = {}
 		self.print_freq = print_freq
 
 	def close(self):
 		self.db.close()
 
 	def get_header_data(self, block_hash):
+		if block_hash in self.headers:
+			return self.headers[block_hash]
+
 		header_bytes = self.db.get(self.prefix + sep + header_store + sep + block_hash)
 		if header_bytes is None:
 			return None
 		h = KaspadDB.DbBlockHeader()
 		h.ParseFromString(header_bytes)
-		return HeaderData(h)
+		header = HeaderData(h)
+
+		self.headers[block_hash] = header
+		return header
 
 	def get_block_data(self, block_hash):
+		if block_hash in self.bodies:
+			return self.bodies[block_hash]
+
 		block_bytes = self.db.get(self.prefix + sep + block_store + sep + block_hash)
 		if block_bytes is None:
 			return None
 		b = KaspadDB.DbBlock()
 		b.ParseFromString(block_bytes)
-		return BlockData(b)
+		body = BlockData(b)
+
+		self.bodies[block_hash] = body
+		return body
 
 	def get_ghostdag_data(self, block_hash):
 		ghostdag_data_bucket = self.prefix + sep + level + sep + ghostdag_data_store + sep
@@ -461,6 +475,28 @@ class Store:
 					s.add(parent)
 					index = bisect(q, -blue_work)
 					q.insert(index, (parent, -blue_work))
+
+	def load_recent_blocks(self, max_time_back=3600*1000):
+		tips, hst = self.tips()
+		hst_timestamp = self.get_header_data(hst).timeInMilliseconds
+		q = deque()
+		for tip in tips:
+			timestamp = self.get_header_data(tip).timeInMilliseconds
+			index = bisect(q, -timestamp)
+			q.insert(index, (tip, -timestamp))
+		s = set(tips)
+		while len(q) > 0:
+			block_hash, _ = q.popleft()
+			current = self.get_block(block_hash)
+			for parent in current.parents:
+				if parent not in s:
+					timestamp = self.get_header_data(parent).timeInMilliseconds
+					s.add(parent)
+					if timestamp >= hst_timestamp - max_time_back:
+						index = bisect(q, -timestamp)
+						q.insert(index, (parent, -timestamp))
+						if len(s) % self.print_freq == 0:
+							print('Loaded {} blocks'.format(len(s)))
 
 
 def bisect(q, score):
