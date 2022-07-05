@@ -21,6 +21,7 @@ pruning_by_index_store = b'pruning-point-by-index'
 headers_selected_tip_key = b'headers-selected-tip'
 tips_key = b'tips'
 virtual_utxo_set_key = b'virtual-utxo-set'
+block_status_store = b'block-statuses'
 
 
 class Block:
@@ -158,6 +159,27 @@ class Store:
 
 		self.headers[block_hash] = header
 		return header
+
+	def get_block_status(self, block_hash):
+		status_bytes = self.db.get(self.prefix + sep + block_status_store + sep + block_hash)
+		if status_bytes is None:
+			return None
+		s = KaspadDB.DbBlockStatus()
+		s.ParseFromString(status_bytes)
+		return s.status
+
+	def load_statuses(self):
+		statuses = []
+		none_count = 0
+		for block_hash in tqdm(self.blocks.keys()):
+			status = self.get_block_status(block_hash)
+			if status is None:
+				none_count += 1
+			else:
+				statuses.append(status)
+		if none_count > 0:
+			print('Number of blocks missing block status: ', none_count)
+		return statuses
 
 	def get_block_data(self, block_hash):
 		if block_hash in self.bodies:
