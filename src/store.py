@@ -22,6 +22,8 @@ headers_selected_tip_key = b'headers-selected-tip'
 tips_key = b'tips'
 virtual_utxo_set_key = b'virtual-utxo-set'
 block_status_store = b'block-statuses'
+utxo_diff_store = b'utxo-diffs'
+utxo_diff_child_store = b'utxo-diff-children'
 
 
 class Block:
@@ -405,6 +407,35 @@ class Store:
 		tips = KaspadDB.DbTips()
 		tips.ParseFromString(tips_bytes)
 		return [t.hash for t in tips.tips], hst.hash
+
+	def get_utxo_diff_child(self, block_hash):
+		child_bytes = self.db.get(self.prefix + sep + utxo_diff_child_store + sep + block_hash)
+		if child_bytes is None:
+			return None, None
+		h = KaspadDB.DbHash()
+		h.ParseFromString(child_bytes)
+		return h.hash, self.get_header_data(h.hash).blueWork
+
+	def get_common_utxo_diff_root(self, low_hash, high_hash):
+		low_child, low_work = self.get_utxo_diff_child(low_hash)
+		high_child, high_work = self.get_utxo_diff_child(high_hash)
+		if low_child is None or high_child is None:
+			return None
+		if low_work > high_work:  # Swap
+			low_child, low_work, high_child, high_work = high_child, high_work, low_child, low_work
+			print("high hash < low hash, flipping")
+		num_steps = 0
+		while low_child != high_child:
+			num_steps += 1
+			child, work = self.get_utxo_diff_child(low_child)
+			if child is None:
+				return None
+			if work > high_work:
+				low_child, low_work = high_child, high_work
+				high_child, high_work = child, work
+			else:
+				low_child, low_work = child, work
+		return low_child
 
 	def load_blocks(self, after_pruning_point=True):
 		# Reset loaded data
