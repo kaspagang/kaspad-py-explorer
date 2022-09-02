@@ -263,7 +263,7 @@ OP_CODE_TO_BYTE = {
 
 BYTE_TO_OP_CODE = {value: key for key, value in OP_CODE_TO_BYTE.items()}
 
-def decode_op_codes(script_pub_key):
+def parse_op_codes(script_pub_key):
         op_code_bytes =  bytearray(script_pub_key)
         index = 0
         op_code_Parsed = ""
