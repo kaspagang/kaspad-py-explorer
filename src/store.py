@@ -92,6 +92,8 @@ class BlockData:
 	def __init__(self, db_block):
 		self.header = HeaderData(db_block.header)
 		self.num_txs = len(db_block.transactions)
+		self.max_sig_ops = max(max((inp.sigOpCount for inp in t.inputs), default=0) for t in db_block.transactions)
+		self.sum_sig_ops = sum(sum((inp.sigOpCount for inp in t.inputs)) for t in db_block.transactions)
 		payload = db_block.transactions[0].payload
 
 		uint64_len = 8
