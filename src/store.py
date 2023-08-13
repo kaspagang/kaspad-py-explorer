@@ -150,6 +150,22 @@ class Store:
 	def close(self):
 		self.db.close()
 
+	def get_raw_header(self, block_hash):
+		header_bytes = self.db.get(self.prefix + sep + header_store + sep + block_hash)
+		if header_bytes is None:
+			return None
+		h = KaspadDB.DbBlockHeader()
+		h.ParseFromString(header_bytes)
+		return h
+
+	def get_raw_block(self, block_hash):
+		block_bytes = self.db.get(self.prefix + sep + block_store + sep + block_hash)
+		if block_bytes is None:
+			return None
+		b = KaspadDB.DbBlock()
+		b.ParseFromString(block_bytes)
+		return b
+
 	def get_header_data(self, block_hash):
 		if block_hash in self.headers:
 			return self.headers[block_hash]
