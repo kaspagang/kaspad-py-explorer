@@ -24,6 +24,9 @@ virtual_utxo_set_key = b'virtual-utxo-set'
 block_status_store = b'block-statuses'
 utxo_diff_store = b'utxo-diffs'
 utxo_diff_child_store = b'utxo-diff-children'
+highest_chain_block_index = b'highest-chain-block-index'
+chain_block_hash_by_index = b'chain-block-hash-by-index'
+chain_block_index_by_hash = b'chain-block-index-by-hash'
 
 
 class Block:
@@ -165,6 +168,22 @@ class Store:
 		b = KaspadDB.DbBlock()
 		b.ParseFromString(block_bytes)
 		return b
+
+	def get_highest_chain_block_index(self):
+		index_bytes = self.db.get(self.prefix + sep + highest_chain_block_index)
+		index = int.from_bytes(index_bytes, 'little')
+		return index
+
+	def get_chain_block_hash_by_index(self, index):
+		hash_bytes = self.db.get(self.prefix + sep + chain_block_hash_by_index + sep + 
+			   index.to_bytes(8, 'big'))
+		return hash_bytes
+
+	def get_chain_block_index_by_hash(self, block_hash):
+		index_bytes = self.db.get(self.prefix + sep + chain_block_index_by_hash + sep + 
+			   block_hash)
+		index = int.from_bytes(index_bytes, 'little')
+		return index
 
 	def get_header_data(self, block_hash):
 		if block_hash in self.headers:
