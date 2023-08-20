@@ -5,7 +5,7 @@ The [kaspad](https://github.com/kaspanet/kaspad) full-node uses a Level-DB datab
 
 Running the notebooks and code samples requires the following pip packages:
 ```
-$ pip install numpy,pandas,matplotlib,plyvel,protobuf==3.20.0,tqdm,notebook,markupsafe==2.0.1
+$ pip install numpy pandas matplotlib plyvel protobuf==3.20.0 tqdm notebook markupsafe==2.0.1
 ```
 
 On windows you might need to run the following (instead of `pip install plyvel`)
