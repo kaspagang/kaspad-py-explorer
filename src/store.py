@@ -21,6 +21,7 @@ pruning_by_index_store = b'pruning-point-by-index'
 headers_selected_tip_key = b'headers-selected-tip'
 tips_key = b'tips'
 virtual_utxo_set_key = b'virtual-utxo-set'
+pruning_utxo_set_key = b'pruning-point-utxo-set'
 block_status_store = b'block-statuses'
 utxo_diff_store = b'utxo-diffs'
 utxo_diff_child_store = b'utxo-diff-children'
@@ -128,6 +129,10 @@ class BlockData:
 			except:
 				pass
 
+class UTXOKey:
+	def __init__(self, db_entry):
+		self.transactionId = db_entry.transactionID.transactionId
+		self.index = db_entry.index
 
 class UTXOEntry:
 	def __init__(self, db_entry):
@@ -407,6 +412,26 @@ class Store:
 			for header_field in fields:
 				frames[header_field].append(getattr(entry_data, header_field))
 		return frames
+	
+	def get_utxoset(self, store_key):
+		utxoset = []
+		prefix = self.prefix + sep + store_key + sep
+		prefix_len = len(prefix)
+		for key, value in tqdm(self.db.iterator(prefix=prefix)):
+			outpoint_entry = KaspadDB.DbOutpoint()
+			outpoint_entry.ParseFromString(key[prefix_len:])
+			db_entry = KaspadDB.DbUtxoEntry()
+			db_entry.ParseFromString(value)
+			key_data = UTXOKey(outpoint_entry)
+			entry_data = UTXOEntry(db_entry)
+			utxoset.append((key_data, entry_data))
+		return utxoset
+	
+	def get_pruning_point_utxoset(self):
+		return self.get_utxoset(pruning_utxo_set_key)
+
+	def get_virtual_utxoset(self):
+		return self.get_utxoset(virtual_utxo_set_key)
 
 	def candidate_pruning_point(self):
 		candidate_bytes = self.db.get(self.prefix + sep + candidate_pruning_point_key)
